@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -55,5 +56,6 @@ func main() {
 }
 
 func sendEmail(claim InsuranceClaim) {
+	time.Sleep(time.Millisecond * 500)
 	log.Printf("CUSTOMER: %s,  AMOUNT: %.2f , send email success", claim.CustomerName, claim.Amount)
 }

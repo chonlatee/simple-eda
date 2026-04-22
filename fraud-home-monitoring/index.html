@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Insurance Fraud Monitor</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .fraud-card { border-left: 5px solid #ef4444; }
+        .evidence-item { font-size: 0.8rem; border-bottom: 1px solid #eee; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white p-8">
+
+    <h1 class="text-3xl font-bold mb-8 text-red-500">🚨 Fraud Detection Command Center</h1>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="bg-gray-800 p-6 rounded-lg shadow-xl">
+            <h2 class="text-xl mb-4 text-gray-400">Total Amount at Risk by Customer</h2>
+            <canvas id="fraudChart"></canvas>
+        </div>
+
+        <div class="bg-gray-800 p-6 rounded-lg shadow-xl">
+            <h2 class="text-xl mb-4 text-gray-400">Live Fraud Alerts</h2>
+            <div id="alertFeed" class="space-y-4 max-h-[500px] overflow-y-auto">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const alertFeed = document.getElementById('alertFeed');
+        const ctx = document.getElementById('fraudChart').getContext('2d');
+
+        // --- CHART SETUP ---
+        const fraudChart = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: [], datasets: [{ label: 'Total Flagged ($)', data: [], backgroundColor: '#ef4444' }] },
+            options: { indexAxis: 'y', scales: { x: { beginAtZero: true } } }
+        });
+
+        // --- HANDLE NEW ALERT ---
+        socket.on('fraud-alert', (data) => {
+            // 1. Update the Chart
+            updateChart(data);
+
+            // 2. Create an Alert Card
+            createAlertCard(data);
+        });
+
+        function updateChart(data) {
+            const index = fraudChart.data.labels.indexOf(data.customerName);
+            if (index > -1) {
+                fraudChart.data.datasets[0].data[index] = data.totalAmount;
+            } else {
+                fraudChart.data.labels.push(data.customerName);
+                fraudChart.data.datasets[0].data.push(data.totalAmount);
+            }
+            fraudChart.update();
+        }
+
+        function createAlertCard(data) {
+            const card = document.createElement('div');
+            card.className = "fraud-card bg-gray-700 p-4 rounded shadow mb-4 animate-pulse";
+            
+            // Format the evidence rows
+            const evidenceHtml = data.evidence.map(e => `
+                <div class="evidence-item py-1 flex justify-between text-gray-300">
+                    <span>ID: ${e.claimId}</span>
+                    <span>${e.claimDate}</span>
+                    <span class="font-mono text-red-300">$${e.amount.toLocaleString()}</span>
+                </div>
+            `).join('');
+
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="font-bold text-lg">${data.customerName}</h3>
+                    <span class="bg-red-600 text-xs px-2 py-1 rounded">${data.claimCount} Claims Flagged</span>
+                </div>
+                <div class="text-sm text-gray-400 mb-2">Total Risk: <b class="text-white">$${data.totalAmount.toLocaleString()}</b></div>
+                <div class="bg-gray-800 p-2 rounded">
+                    <p class="text-[10px] uppercase text-gray-500 mb-1">Evidence Trail</p>
+                    ${evidenceHtml}
+                </div>
+            `;
+            
+            alertFeed.prepend(card);
+            setTimeout(() => card.classList.remove('animate-pulse'), 2000);
+        }
+    </script>
+</body>
+</html>

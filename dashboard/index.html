@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Small claim</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.socket.io/4.8.3/socket.io.min.js"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; background: #f4f7f6; }
+    .container { width: 80%; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+  <h1>Real-Time small claims Tracker</h1>
+  <div class="container">
+    <canvas id="claimsChart" width="400" height="200"></canvas>
+  </div>
+
+
+  <script>
+    const socket = io();
+        const ctx = document.getElementById('claimsChart').getContext('2d');
+
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [], 
+                datasets: [{
+                    label: 'Claim Amount ($)',
+                    data: [], 
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        const updateLeaderBoard = (data) => {
+            chart.data.labels = data.map(item => item.customerName);
+            chart.data.datasets[0].data = data.map(item => item.total);
+            chart.update();
+        };
+
+        socket.on('initial-data', (data) => {
+            updateLeaderBoard(data);
+        });
+
+        socket.on('claim-update', (data) => {
+            updateLeaderBoard(data);
+        });
+
+  </script>
+  
+</body>
+</html>

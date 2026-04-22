@@ -31,11 +31,11 @@ public class ClaimStatelessStreamProcessor {
                                 Consumed.with(Serdes.String(), claimSerde));
 
                 sourceStream.split()
-                                .branch((key, claim) -> claim.getAmount() >= 5000,
+                                .branch((key, claim) -> claim.getAmount() >= 20000,
                                                 Branched.withConsumer(ks -> ks.to("large-claim-amount-topic",
                                                                 Produced.with(Serdes.String(), claimSerde))))
 
-                                .branch((key, claim) -> claim.getAmount() < 5000,
+                                .branch((key, claim) -> claim.getAmount() < 20000,
                                                 Branched.withConsumer(ks -> {
                                                         ks.to("small-claim-amount-topic",
                                                                         Produced.with(Serdes.String(), claimSerde));
